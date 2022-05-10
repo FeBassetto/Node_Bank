@@ -17,7 +17,7 @@ function operation() {
         message: 'O que você deseja fazer?',
         choices: [
             'Criar Conta',
-            'Consultar saldo',
+            'Consultar Saldo',
             'Depositar',
             'Sacar',
             'Sair'
@@ -33,6 +33,14 @@ function operation() {
 
             action === 'Depositar' && (
                 deposit()
+            )
+
+            action === 'Consultar Saldo' && (
+                getAccountBalance()
+            )
+
+            action === 'Sacar' && (
+                withdraw()
             )
 
             action === 'Sair' && (
@@ -168,5 +176,84 @@ function getAccount(accountName) {
     })
 
     return JSON.parse(accountJSON)
+
+}
+
+
+// show account balance
+
+function getAccountBalance() {
+
+    inquirer.prompt([{
+        name: 'accountName',
+        message: 'Qual o nome da sua conta?'
+    }])
+        .then(res => {
+
+            const accountName = res['accountName']
+
+            //verify if account exist
+            if (!checkAccount(accountName)) {
+                return getAccountBalance()
+            }
+
+            const accountData = getAccount(accountName)
+
+
+            console.log(chalk.bgBlue.black(
+                `Olá, o saldo da sua conta é de R$${accountData.balance}`
+            ))
+
+            operation()
+
+        })
+        .catch(err => console.log(err))
+
+}
+
+function withdraw() {
+
+    inquirer.prompt([{
+        name: 'accountName',
+        message: 'Qual a conta que você gostaria de sacar?'
+    }])
+        .then(res => {
+
+            const accountName = res['accountName']
+
+            //verify if account exists
+            if (!checkAccount(accountName)) {
+                return withdraw()
+            }
+
+            inquirer.prompt([{
+                name: 'current',
+                message: 'Quanto você deseja sacar?'
+            }])
+                .then(res => {
+
+                    const accountData = getAccount(accountName)
+
+                    if (accountData.balance < res.current) {
+
+                        console.log(chalk.bgRed.black(`Saldo indisponivel`))
+                        return withdraw()
+                    }
+
+                    accountData.balance = parseFloat(accountData.balance) - parseFloat(res.current)
+
+                    fs.writeFileSync(
+                        `accounts/${accountName}.json`,
+                        JSON.stringify(accountData),
+                        err => console.log(err)
+                    )
+
+                    return operation()
+
+                })
+                .catch(err => console.log(err))
+
+        })
+        .catch(err => console.log(err))
 
 }
